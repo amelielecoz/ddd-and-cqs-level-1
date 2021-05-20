@@ -2,18 +2,20 @@
 
 use Fleet;
 use Vehicle;
+use PHPUnit\Framework\Assert;
 use Behat\Behat\Context\Context;
 use Behat\Gherkin\Node\TableNode;
 use Behat\Gherkin\Node\PyStringNode;
 use Behat\Behat\Tester\Exception\PendingException;
-use PHPUnit\Framework\Assert;
+use PHPUnit\Framework\TestCase;
 
 /**
  * Defines application features from the specific context.
  */
-class FeatureContext implements Context
+class FeatureContext extends TestCase implements Context 
 {
     private $fleet;
+    private $anotherFleet;
     private $vehicle;
     private $location;
 
@@ -102,7 +104,7 @@ class FeatureContext implements Context
      */
     public function iShouldBeInformedThatMyVehicleIsAlreadyParkedAtThisLocation()
     {
-        $this->vehicle->parkAtLocation($this->location);
+        $this->expectExceptionMessageMatches('My vehicle is already parked here.');
     }
 
     /**
@@ -118,7 +120,7 @@ class FeatureContext implements Context
      */
     public function thisVehicleShouldBePartOfMyVehicleFleet()
     {
-        Assert::assertContains($this->vehicle, $this->fleet->getVehicles(), 'This vehicle is not part of this fleet.');
+        $this->assertContains($this->vehicle, $this->fleet->getVehicles(), 'This vehicle is not part of this fleet.');
     }
 
     /**
@@ -126,23 +128,23 @@ class FeatureContext implements Context
      */
     public function iTryToRegisterThisVehicleIntoMyFleet()
     {
-        throw new PendingException();
+        $this->fleet->registerVehicle($this->vehicle);
     }
 
     /**
-     * @Then I should be informed this this vehicle has already been registered into my fleet
+     * @Then I should be informed this vehicle has already been registered into my fleet
      */
     public function iShouldBeInformedThisThisVehicleHasAlreadyBeenRegisteredIntoMyFleet()
     {
-        throw new PendingException();
+        $this->expectErrorMessageMatches('This vehicle has already been registered into my fleet.');
     }
 
     /**
      * @Given the fleet of another user
      */
-    public function theFleetOfAnotherUser($user)
+    public function theFleetOfAnotherUser()
     {
-        $user->getFleet();
+        $this->anotherFleet = new Fleet();
     }
 
     /**
@@ -150,6 +152,6 @@ class FeatureContext implements Context
      */
     public function thisVehicleHasBeenRegisteredIntoTheOtherUsersFleet()
     {
-        throw new PendingException();
+        $this->anotherFleet->registerVehicle($this->vehicle);
     }
 }

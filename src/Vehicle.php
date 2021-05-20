@@ -9,8 +9,9 @@ class Vehicle {
 
     public function parkAtLocation(Location $location) {
         if(!$location->isFree) {
-            throw new Exception('A vehicle is already parked here');
+            return new Exception('A vehicle is already parked here');
         }
+        $location->parkVehicle($this);
         $this->location = $location;
     }
 
