@@ -1,0 +1,18 @@
+{
+    "name": "amelie/ddd-and-cqs-level-1",
+    "require": {
+        "behat/behat": "^3.8",
+        "phpunit/phpunit": "^9.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Amelie Le Coz",
+            "email": "lecozamelie@hotmail.com"
+        }
+    ]
+}
