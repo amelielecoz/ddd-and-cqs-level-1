@@ -1,23 +1,24 @@
 <?php
 
-use Fleet;
-use Vehicle;
+use App\Domain\Model\Fleet;
+use App\Domain\Model\Vehicle;
 use PHPUnit\Framework\Assert;
+use App\Domain\Model\Location;
 use Behat\Behat\Context\Context;
-use Behat\Gherkin\Node\TableNode;
-use Behat\Gherkin\Node\PyStringNode;
-use Behat\Behat\Tester\Exception\PendingException;
-use PHPUnit\Framework\TestCase;
+use App\App\Command\ParkVehicleCommand;
+use App\App\Command\VerifyLocationCommand;
+use App\App\Command\RegisterVehicleCommand;
 
 /**
  * Defines application features from the specific context.
  */
-class FeatureContext extends TestCase implements Context 
+class FeatureContext implements Context 
 {
     private $fleet;
     private $anotherFleet;
     private $vehicle;
     private $location;
+    private $lastError = null;
 
     /**
      * Initializes context.
@@ -46,15 +47,7 @@ class FeatureContext extends TestCase implements Context
     {
         $this->vehicle = new Vehicle();
     }
-
-    /**
-     * @Given I have registered this vehicle into my fleet
-     */
-    public function iHaveRegisteredThisVehicleIntoMyFleet()
-    {
-        $this->fleet->registerVehicle($this->vehicle);
-    }
-
+    
     /**
      * @Given a location
      */
@@ -63,12 +56,21 @@ class FeatureContext extends TestCase implements Context
         $this->location = new Location();
     }
 
+
     /**
      * @When I park my vehicle at this location
+     * @When I try to park my vehicle at this location
+     * @Given my vehicle has been parked into this location
      */
     public function iParkMyVehicleAtThisLocation()
     {
-        $this->vehicle->parkAtLocation($this->location);
+        $command = new ParkVehicleCommand();
+
+        try {
+            $command($this->vehicle, $this->location);
+        } catch (\Throwable $th) {
+            $this->lastError = $th;
+        }
     }
 
     /**
@@ -76,43 +78,22 @@ class FeatureContext extends TestCase implements Context
      */
     public function theKnownLocationOfMyVehicleShouldVerifyThisLocation()
     {
-        if($this->vehicle->getLocation() !== $this->location){
-            return new Exception('The location of my vehicle does not verify this location');
+        $command = new VerifyLocationCommand();
+
+        try {
+            $command($this->vehicle, $this->location);
+        } catch (\Throwable $th) {
+            $this->lastError = $th;
         }
     }
 
-    /**
-     * @Given my vehicle has been parked into this location
-     */
-    public function myVehicleHasBeenParkedIntoThisLocation()
-    {
-        if(!$this->vehicle->getLocation() === $this->location) {
-            throw new Exception('The vehicle has not been parked in this location.');
-        }
-    }
-
-    /**
-     * @When I try to park my vehicle at this location
-     */
-    public function iTryToParkMyVehicleAtThisLocation()
-    {
-        $this->vehicle->parkAtLocation($this->location);
-    }
 
     /**
      * @Then I should be informed that my vehicle is already parked at this location
      */
     public function iShouldBeInformedThatMyVehicleIsAlreadyParkedAtThisLocation()
     {
-        $this->expectExceptionMessageMatches('My vehicle is already parked here.');
-    }
-
-    /**
-     * @When I register this vehicle into my fleet
-     */
-    public function iRegisterThisVehicleIntoMyFleet()
-    {
-        $this->fleet->registerVehicle($this->vehicle);
+        Assert::assertNotNull($this->lastError);
     }
 
     /**
@@ -120,15 +101,23 @@ class FeatureContext extends TestCase implements Context
      */
     public function thisVehicleShouldBePartOfMyVehicleFleet()
     {
-        $this->assertContains($this->vehicle, $this->fleet->getVehicles(), 'This vehicle is not part of this fleet.');
+        Assert::assertTrue($this->fleet->hasVehicle($this->vehicle), 'This vehicle is not part of this fleet.');
     }
 
     /**
      * @When I try to register this vehicle into my fleet
+     * @Given I have registered this vehicle into my fleet
+     * @When I register this vehicle into my fleet
      */
-    public function iTryToRegisterThisVehicleIntoMyFleet()
+    public function iRegisterThisVehicleIntoMyFleet()
     {
-        $this->fleet->registerVehicle($this->vehicle);
+        $command = new RegisterVehicleCommand();
+
+        try {
+            $command($this->vehicle, $this->fleet);
+        } catch (\Throwable $th) {
+            $this->lastError = $th;
+        }
     }
 
     /**
@@ -136,7 +125,8 @@ class FeatureContext extends TestCase implements Context
      */
     public function iShouldBeInformedThisThisVehicleHasAlreadyBeenRegisteredIntoMyFleet()
     {
-        $this->expectErrorMessageMatches('This vehicle has already been registered into my fleet.');
+        // verifie que $this->lastError n'est pas nul et vérifie le message
+        Assert::assertNotNull($this->lastError);
     }
 
     /**
@@ -152,6 +142,12 @@ class FeatureContext extends TestCase implements Context
      */
     public function thisVehicleHasBeenRegisteredIntoTheOtherUsersFleet()
     {
-        $this->anotherFleet->registerVehicle($this->vehicle);
+        $command = new RegisterVehicleCommand();
+
+        try {
+            $command($this->vehicle, $this->anotherFleet);
+        } catch (\Throwable $th) {
+            $this->lastError = $th;
+        }
     }
 }
